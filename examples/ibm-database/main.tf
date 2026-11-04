@@ -1,162 +1,51 @@
-########################################################
-# Create VM configured to access ICD database
-########################################################
-
-resource "ibm_compute_vm_instance" "webapp1" {
-  domain                     = "wcpclouduk.com"
-  datacenter                 = "lon06"
-  hostname                   = "webapp1"
-  count                      = 1
-  os_reference_code          = "CENTOS_LATEST_64"
-  flavor_key_name            = "C1_1X1X25"
-  local_disk                 = false
-  private_security_group_ids = [ibm_security_group.sg_private_lamp.id]
-  public_security_group_ids  = [ibm_security_group.sg_public_lamp.id]
-  private_network_only       = false
-  tags                       = ["group:webserver"]
+data "ibm_database_point_in_time_recovery" "source" {
+  deployment_id = "crn:v1:bluemix:public:databases-for-postgresql-cdp-dev:us-east:a/23b09aee04da4545b6e32805fa93249d:895f62e7-9d80-4591-a48d-e38d4b4204c0::"
 }
 
-data "ibm_resource_group" "group" {
-  name = "default"
+output "pitr_earliest_time" {
+  description = "Earliest time a restore can target"
+  value       = data.ibm_database_point_in_time_recovery.source.earliest_point_in_time_recovery_time
 }
 
-resource "ibm_database" "test_acc" {
-  resource_group_id = data.ibm_resource_group.group.id
-  name              = "demo-postgres"
-  service           = "databases-for-postgresql"
-  plan              = "standard"
-  location          = "eu-gb"
-  adminpassword     = "adminpassword"
-
-  allowlist {
-    address     = "${ibm_compute_vm_instance.webapp1[0].ipv4_address}/32"
-    description = ibm_compute_vm_instance.webapp1[0].hostname
-  }
-
-  tags = ["tag1", "tag2"]
-
-  // adminpassword                = "password12"
-  group {
-    group_id = "member"
-    memory {
-      allocation_mb = 2048
-    }
-    disk {
-      allocation_mb = 10240
-    }
-  }
-
-  users {
-    name     = "user123"
-    password = "password12"
-  }
+output "pitr_latest_time" {
+  description = "Latest time a restore can target (empty when not_restorable_reason is set)"
+  value       = data.ibm_database_point_in_time_recovery.source.latest_point_in_time_recovery_time
 }
 
-# // Key Protect Integration
-# resource "ibm_resource_instance" "kp_instance" {
-#     name              = "test"
-#     service           = "kms"
-#     plan              = "tiered-pricing"
-#     location          = "us-south"
+output "pitr_retention_days" {
+  description = "Days of history kept for point-in-time recovery"
+  value       = data.ibm_database_point_in_time_recovery.source.retention_days
+}
+
+output "pitr_archiving_status" {
+  description = "Change archiving state: healthy, delayed or unknown"
+  value       = data.ibm_database_point_in_time_recovery.source.archiving_status
+}
+
+output "pitr_unavailable_periods" {
+  description = "Periods inside the window that cannot be restored to"
+  value       = data.ibm_database_point_in_time_recovery.source.unavailable_periods
+}
+
+output "pitr_not_restorable_reason" {
+  description = "Why the instance cannot be restored now (empty when it can)"
+  value       = data.ibm_database_point_in_time_recovery.source.not_restorable_reason
+}
+
+# resource "ibm_database" "postgres_gen2_restore" {
+#   name              = "gaurav-pg-pitr2-terraform-test-1"
+#   plan              = "databases-for-postgresql-cdp-dev-standard"
+#   location          = "us-east"
+#   service           = "databases-for-postgresql-cdp-dev"
+#   service_endpoints = "private"
+#   cdp_placement     = "cds-sdbx6-mzr-wdc-cp-1"
+
+#   point_in_time_recovery_deployment_id = ibm_database.postgres_gen2.id
+#   point_in_time_recovery_time          = data.ibm_database_point_in_time_recovery.source.latest_point_in_time_recovery_time
+
+#   point_in_time_recovery_deployment_id = "crn:v1:bluemix:public:databases-for-postgresql-cdp-dev:us-east:a/23b09aee04da4545b6e32805fa93249d:5847c6bb-499c-403e-aea1-6dfe065b076a::"
+#   point_in_time_recovery_time          = "2026-10-29T09:40:03Z"
+#   timeouts {
+#     create = "180m"
+#   }
 # }
-# resource "ibm_kp_key" "test" {
-#     key_protect_id = ibm_resource_instance.kp_instance.guid
-#     key_name = "testkey"
-# }
-# //Using the Key Protect Key for disk encryption
-# resource "ibm_database" "redis" {
-#     resource_group_id            = data.ibm_resource_group.group.id
-#     name                         = "redis-test"
-#     service                      = "databases-for-redis"
-#     plan                         = "standard"
-#     location                     = "us-south"
-#     service_endpoints            = "private"
-#     key_protect_instance        = ibm_resource_instance.kp_instance.guid
-#     key_protect_key             = ibm_kp_key.test.id
-# }
-# //Using the Key Protect Key to encrypt disk that holds deployment backups
-# resource "ibm_database" "redistest" {
-#     resource_group_id            = data.ibm_resource_group.test_acc.id
-#     name                         = "redis-test-key"
-#     service                      = "databases-for-redis"
-#     plan                         = "standard"
-#     location                     = "us-south"
-#     service_endpoints            = "private"
-#     backup_encryption_key_crn    = ibm_kp_key.test.id
-
-# }
-
-// Setting Auto-Scaling Groups for database
-resource "ibm_database" "autoscale" {
-  resource_group_id        = data.ibm_resource_group.group.id
-  name                     = "redis-test-key"
-  service                  = "databases-for-redis"
-  plan                     = "standard"
-  location                 = "us-south"
-  service_endpoints        = "private"
-  auto_scaling {
-    cpu {
-      rate_increase_percent       = 20
-      rate_limit_count_per_member = 20
-      rate_period_seconds         = 900
-      rate_units                  = "count"
-    }
-    disk {
-      capacity_enabled             = true
-      free_space_less_than_percent = 15
-      io_above_percent             = 85
-      io_enabled                   = true
-      io_over_period               = "15m"
-      rate_increase_percent        = 15
-      rate_limit_mb_per_member     = 3670016
-      rate_period_seconds          = 900
-      rate_units                   = "mb"
-    }
-      memory {
-      io_above_percent         = 90
-      io_enabled               = true
-      io_over_period           = "15m"
-      rate_increase_percent    = 10
-      rate_limit_mb_per_member = 114688
-      rate_period_seconds      = 900
-      rate_units               = "mb"
-    }
-  }
-
-// Gen2 Valkey database instance example
-// Note: Valkey is only available as a Gen2 service
-resource "ibm_database" "valkey_gen2" {
-  resource_group_id = data.ibm_resource_group.group.id
-  name              = "valkey-gen2-example"
-  service           = "databases-for-valkey"
-  plan              = "standard-gen2"
-  location          = "ca-mon"
-  service_endpoints = "private"
-
-  version = "9.0"
-
-  group {
-    group_id = "member"
-    disk {
-      allocation_mb = 20480  # 20 GB
-    }
-    host_flavor {
-      id = "bx3d.4x20"
-    }
-  }
-
-  tags = ["env:test", "database:valkey"]
-}
-
-// Credentials for Gen2 Valkey instance via resource key
-resource "ibm_resource_key" "valkey_credentials" {
-  name                 = "valkey-credentials"
-  resource_instance_id = ibm_database.valkey_gen2.id
-}
-
-// Output Valkey connection details
-output "valkey_connection" {
-  value     = ibm_resource_key.valkey_credentials.credentials
-  sensitive = true
-}
-}

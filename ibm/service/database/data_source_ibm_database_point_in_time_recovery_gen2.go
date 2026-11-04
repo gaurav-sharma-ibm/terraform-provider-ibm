@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -104,6 +105,10 @@ func notRestorableDetail(deploymentID, reason string) string {
 	return detail
 }
 
+// restorableWindowHostEnv, when set, replaces the host of the published restorable window URL. It is for development
+// environments whose published host does not resolve; the replaced URL is still held to the https and cloud.ibm.com rules.
+const restorableWindowHostEnv = "IBMCLOUD_DATABASES_PITR_WINDOW_HOST"
+
 // restorableWindowURL refuses any URL but HTTPS to a host name under cloud.ibm.com, because the request carries the provider's IAM token.
 func restorableWindowURL(deploymentID string, extensions map[string]interface{}) (string, error) {
 	dataservices, _ := extensions["dataservices"].(map[string]interface{})
@@ -112,6 +117,12 @@ func restorableWindowURL(deploymentID string, extensions map[string]interface{})
 	if windowURL == "" {
 		return "", fmt.Errorf("the Resource Controller extensions of %s publish no dataservices.point_in_time_recovery_status.restorable_window_url. "+
 			"If point-in-time recovery is available for this service in its region, update the instance's parameters or plan and wait for the update to finish, which refreshes its extensions (a tag change does not), or ask IBM Cloud support to sync it", deploymentID)
+	}
+
+	if override := os.Getenv(restorableWindowHostEnv); override != "" {
+		if published, err := url.Parse(windowURL); err == nil && published.Host != "" {
+			windowURL = strings.Replace(windowURL, published.Host, override, 1)
+		}
 	}
 
 	parsed, err := url.Parse(windowURL)

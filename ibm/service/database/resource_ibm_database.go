@@ -429,6 +429,12 @@ func ResourceIBMDatabaseInstance() *schema.Resource {
 				Optional:         true,
 				DiffSuppressFunc: flex.ApplyOnce,
 			},
+			"cdp_placement": {
+				Description: "The CDP placement of the instance, sent as parameters.cdp.placement. Gen2 only, for CDP development services that require it; for a restore, use the source instance's placement. Applied only at creation.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+			},
 			"offline_restore": {
 				Description:      "Set offline restore mode for MongoDB Enterprise Edition. Gen2: Accepted but ignored. Offline restore requires backup_id support which is not yet implemented for Gen2 instances.",
 				Type:             schema.TypeBool,
@@ -1017,14 +1023,14 @@ func ResourceIBMICDValidator() *validate.ResourceValidator {
 			Identifier:                 "service",
 			ValidateFunctionIdentifier: validate.ValidateAllowedStringValue,
 			Type:                       validate.TypeString,
-			AllowedValues:              "databases-for-etcd, databases-for-postgresql, databases-for-redis, databases-for-valkey, databases-for-valkey-cdp-dev, databases-for-elasticsearch, databases-for-mongodb, messages-for-rabbitmq, databases-for-mysql, databases-for-enterprisedb",
+			AllowedValues:              "databases-for-etcd, databases-for-postgresql, databases-for-postgresql-cdp-dev, databases-for-redis, databases-for-valkey, databases-for-valkey-cdp-dev, databases-for-elasticsearch, databases-for-mongodb, messages-for-rabbitmq, databases-for-mysql, databases-for-enterprisedb",
 			Required:                   true})
 	validateSchema = append(validateSchema,
 		validate.ValidateSchema{
 			Identifier:                 "plan",
 			ValidateFunctionIdentifier: validate.ValidateAllowedICDPlanValue,
 			Type:                       validate.TypeString,
-			AllowedValues:              "standard, standard-gen2, enterprise, enterprise-gen2, enterprise-sharding, enterprise-sharding-gen2, platinum",
+			AllowedValues:              "standard, standard-gen2, enterprise, enterprise-gen2, enterprise-sharding, enterprise-sharding-gen2, platinum, databases-for-postgresql-cdp-dev-standard",
 			Required:                   true})
 	validateSchema = append(validateSchema,
 		validate.ValidateSchema{

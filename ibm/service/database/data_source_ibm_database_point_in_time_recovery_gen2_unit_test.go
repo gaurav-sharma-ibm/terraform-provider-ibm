@@ -69,6 +69,24 @@ func TestGen2RestorableWindowURL(t *testing.T) {
 	}
 }
 
+func TestGen2RestorableWindowURLHostOverride(t *testing.T) {
+	publishedHost := "api.postgresql.ca-mon.dataservices.cloud.ibm.com"
+
+	t.Run("override replaces the host and keeps the path", func(t *testing.T) {
+		t.Setenv(restorableWindowHostEnv, "api.ca-mon.postgresql.dataservices.cloud.ibm.com")
+		got, err := restorableWindowURL(testGen2WindowInstanceCRN, windowURLExtensions(testGen2WindowURL))
+		require.NoError(t, err)
+		assert.Equal(t, strings.Replace(testGen2WindowURL, publishedHost, "api.ca-mon.postgresql.dataservices.cloud.ibm.com", 1), got)
+	})
+
+	t.Run("override outside cloud.ibm.com is refused", func(t *testing.T) {
+		t.Setenv(restorableWindowHostEnv, "example.com")
+		_, err := restorableWindowURL(testGen2WindowInstanceCRN, windowURLExtensions(testGen2WindowURL))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "is not an https URL under cloud.ibm.com")
+	})
+}
+
 func newTestWindowService(t *testing.T, serverURL string) *core.BaseService {
 	t.Helper()
 	service, err := core.NewBaseService(&core.ServiceOptions{
