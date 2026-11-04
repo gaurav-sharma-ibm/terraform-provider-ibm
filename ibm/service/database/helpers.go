@@ -173,7 +173,9 @@ func isShardAttrConfiguredInDiff(d *schema.ResourceDiff, k string) bool {
 }
 
 func isGen2Plan(plan string) bool {
-	gen2Pattern := regexp.MustCompile(`-gen2($|-.+)`)
+	// cdp-dev services (e.g. databases-for-postgresql-cdp-dev-standard) are Gen2 but
+	// their plan names do not contain "-gen2".
+	gen2Pattern := regexp.MustCompile(`-gen2($|-.+)|-cdp-dev-`)
 	return gen2Pattern.MatchString(strings.ToLower(plan))
 }
 
@@ -304,16 +306,17 @@ func wrapAPIError(operation string, err error, response interface{}) error {
 
 // Database service name prefixes mapped to their type keys
 var databaseServicePrefixes = map[string]string{
-	"databases-for-etcd":           "etcd",
-	"databases-for-postgresql":     "postgresql",
-	"databases-for-redis":          "redis",
-	"databases-for-valkey":         "valkey",
-	"databases-for-valkey-cdp-dev": "valkey",
-	"databases-for-elasticsearch":  "elasticsearch",
-	"databases-for-mongodb":        "mongodb",
-	"messages-for-rabbitmq":        "rabbitmq",
-	"databases-for-mysql":          "mysql",
-	"databases-for-enterprisedb":   "enterprisedb",
+	"databases-for-etcd":               "etcd",
+	"databases-for-postgresql":         "postgresql",
+	"databases-for-postgresql-cdp-dev": "postgresql",
+	"databases-for-redis":              "redis",
+	"databases-for-valkey":             "valkey",
+	"databases-for-valkey-cdp-dev":     "valkey",
+	"databases-for-elasticsearch":      "elasticsearch",
+	"databases-for-mongodb":            "mongodb",
+	"messages-for-rabbitmq":            "rabbitmq",
+	"databases-for-mysql":              "mysql",
+	"databases-for-enterprisedb":       "enterprisedb",
 }
 
 // getDatabaseTypeFromResourceID maps the resource ID or service name to the database type key.

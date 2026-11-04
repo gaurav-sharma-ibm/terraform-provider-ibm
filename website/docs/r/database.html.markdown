@@ -1015,6 +1015,7 @@ Review the argument reference that you can specify for your resource.
 - `point_in_time_recovery_deployment_id` - (Optional, String) The ID of the source deployment that you want to recover back to.
 
   **Gen2:** The CRN of a Gen2 source instance of the same service, in the same region and account; `location` must be the source's region. Set it together with `point_in_time_recovery_time`, and not with `backup_id`. Applied only at creation.
+- `cdp_placement` - (Optional, Forces new resource, String) **Gen2 only.** The CDP placement, sent as `parameters.cdp.placement`, for CDP development services that require it. For a restore, use the source instance's placement.
 
 - `point_in_time_recovery_time` - (Optional, String) The timestamp in UTC format that you want to restore to. To retrieve the timestamp, run the `ibmcloud cdb postgresql earliest-pitr-timestamp <deployment name or CRN>` command. To restore to the latest available time, use a blank string `""` as the timestamp. For more information, see [Point-in-time Recovery](https://cloud.ibm.com/docs/databases-for-postgresql?topic=databases-for-postgresql-pitr).
 

@@ -55,6 +55,10 @@ func (g *resourceIBMDatabaseGen2Backend) buildGen2CreateParameters(d *schema.Res
 	}
 	addPointInTimeRecoveryRetention(d, dataservices)
 
+	if placement, ok := d.GetOk("cdp_placement"); ok {
+		parameters["cdp"] = map[string]interface{}{"placement": placement.(string)}
+	}
+
 	return parameters, nil
 }
 
@@ -127,7 +131,7 @@ func validateGen2PointInTimeRestore(restore gen2PointInTimeRestore) error {
 func validateGen2PointInTimeRestoreSource(sourceCRN, service, location string) error {
 	segments := strings.Split(sourceCRN, ":")
 	if len(segments) != 10 || segments[0] != "crn" || segments[7] == "" || segments[8] != "" || segments[9] != "" {
-		return fmt.Errorf("point_in_time_recovery_deployment_id %q must be the CRN of the source instance, such as crn:v1:bluemix:public:databases-for-postgresql:ca-mon:a/<account-id>:<instance-id>::; to restore a backup, use backup_id", sourceCRN)
+		return fmt.Errorf("point_in_time_recovery_deployment_id %q must be the CRN of the source instance, such as crn:v1:bluemix:public:databases-for-postgresql-cdp-dev:ca-mon:a/<account-id>:<instance-id>::; to restore a backup, use backup_id", sourceCRN)
 	}
 	if service != "" && segments[4] != service {
 		return fmt.Errorf("point_in_time_recovery_deployment_id must be an instance of %s, not %s", service, segments[4])

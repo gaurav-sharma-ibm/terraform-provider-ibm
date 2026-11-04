@@ -442,6 +442,19 @@ func TestGen2BuildCreateParametersPointInTimeRestore(t *testing.T) {
 		assert.Equal(t, pointInTimeRecoveryRetention(14), testGen2DataservicesParameters(t, parameters)["backups"])
 	})
 
+	t.Run("cdp_placement is sent as parameters.cdp.placement", func(t *testing.T) {
+		d := testGen2DatabaseResourceData(t, map[string]interface{}{
+			pointInTimeRecoveryDeploymentIDKey: testGen2PointInTimeSourceCRN,
+			pointInTimeRecoveryTimeKey:         testGen2PointInTime,
+			"cdp_placement":                    "cds-sdbx6-mzr-wdc-cp-1",
+		})
+
+		parameters, err := g.buildGen2CreateParameters(d, "databases-for-postgresql", nil, "")
+		require.NoError(t, err)
+
+		assert.Equal(t, map[string]interface{}{"placement": "cds-sdbx6-mzr-wdc-cp-1"}, parameters["cdp"])
+	})
+
 	t.Run("instance without a restore is unchanged", func(t *testing.T) {
 		d := testGen2DatabaseResourceData(t, map[string]interface{}{
 			"group": testGen2MemberGroup(2),
